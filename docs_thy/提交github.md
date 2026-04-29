@@ -14,7 +14,7 @@ git add .
 
 git commit -m "11111"  
 
-git remote add origin https://github.com/hzqjgthy/FPS.git
+git remote add origin https://github.com/hzqjgthy/claude-code-haha.git
 
 
 git push -u origin main
@@ -32,5 +32,19 @@ git push -u origin main --force
 
 
 
-export https_proxy=http://127.0.0.1:7890                 
+
+# 临时启用代理（仅当前终端会话）
+export https_proxy=http://127.0.0.1:7890
 export http_proxy=http://127.0.0.1:7890
+# 取消代理
+unset https_proxy http_proxy
+
+
+
+给 Git 配置代理
+git config --global http.proxy http://127.0.0.1:7890
+git config --global https.proxy http://127.0.0.1:7890
+清除代理
+git config --global --unset http.proxy
+git config --global --unset https.proxy
+
