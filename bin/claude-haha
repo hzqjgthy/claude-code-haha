@@ -1,0 +1,67 @@
+#!/usr/bin/env bash
+
+# 这个脚本是项目的命令行入口包装器。
+# 它本身不直接实现业务逻辑，而是负责：
+# 1. 先把当前工作目录切换到项目根目录，确保后续相对路径稳定可用；
+# 2. 根据环境变量决定启动“恢复模式”的简化 CLI，还是默认的完整 TUI CLI；
+# 3. 使用 exec 把当前 shell 进程替换成真正的 bun 进程，避免多套进程层级。
+
+# 开启更严格的 Bash 执行模式：
+# -e：任意命令返回非 0 时立即退出，避免错误被悄悄忽略；
+# -u：使用未定义变量时报错，避免因为变量名写错产生隐蔽问题；
+# -o pipefail：管道中只要任意一个命令失败，整个管道都视为失败。
+set -euo pipefail
+
+# 计算项目根目录路径。
+# 这里的思路是：
+# 1. ${BASH_SOURCE[0]} 表示当前脚本文件本身的路径；
+# 2. dirname 把脚本路径转成其所在目录，也就是 bin/；
+# 3. /.. 表示再向上一层，回到项目根目录；
+# 4. cd 到那个目录后执行 pwd，拿到一个规范化的绝对路径。
+# 最终 ROOT_DIR 会类似于：/path/to/claude-code-haha
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+
+# 切换到项目根目录。
+# 这样做的目的是让下面执行的 bun 命令可以稳定地访问：
+# - ./.env
+# - ./src/localRecoveryCli.ts
+# - ./src/entrypoints/cli.tsx
+# 无论用户是从哪个目录执行这个脚本，内部相对路径都会以项目根目录为基准。
+cd "$ROOT_DIR"
+
+# 先准备传给 bun 的公共参数。
+# 默认只会加载项目根目录下的 .env 文件。
+BUN_ARGS=(--env-file=.env)
+
+# 本地调试开关：
+# 如果设置了 CLAUDE_CODE_ENABLE_DUMP_SYSTEM_PROMPT=1，
+# 就顺手把 Bun 的 DUMP_SYSTEM_PROMPT feature 打开。
+# 这样本地运行时，`--dump-system-prompt` 这条分支才会生效。
+if [[ "${CLAUDE_CODE_ENABLE_DUMP_SYSTEM_PROMPT:-0}" == "1" ]]; then
+  BUN_ARGS+=(--feature=DUMP_SYSTEM_PROMPT)
+fi
+
+# 如果显式设置了 CLAUDE_CODE_FORCE_RECOVERY_CLI=1，
+# 就强制进入恢复模式 CLI。
+# 恢复模式通常用于完整 TUI 不可用、终端兼容性较差、
+# 或者需要更朴素的 readline 交互方式时的兜底场景。
+# 这里使用了 :-0 这个 Bash 默认值语法：
+# - 如果环境变量未设置，就把它当成 0；
+# - 只有变量值严格等于字符串 "1" 时才会走恢复模式。
+if [[ "${CLAUDE_CODE_FORCE_RECOVERY_CLI:-0}" == "1" ]]; then
+  # exec 会直接用 bun 进程替换当前 shell 进程：
+  # - 不会额外保留这一层 bash 包装进程；
+  # - 信号处理和退出码会更直接；
+  # - 更适合作为正式入口脚本。
+  #
+  # --env-file=.env 表示让 bun 额外从项目根目录下的 .env 文件加载环境变量。
+  # "$@" 会把用户传给本脚本的所有参数原样透传给 TypeScript 入口，
+  # 并正确保留带空格参数的边界。
+  exec bun "${BUN_ARGS[@]}" ./src/localRecoveryCli.ts "$@"
+fi
+
+# 默认情况下，启动完整的 CLI 界面版本。
+# 这个入口会进入基于 Ink 的 TUI（终端界面）实现，
+# 提供比恢复模式更完整的交互体验。
+# 同样保留 .env 加载和参数透传行为。
+exec bun "${BUN_ARGS[@]}" ./src/entrypoints/cli.tsx "$@"

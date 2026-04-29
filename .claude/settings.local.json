@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python3 -m json.tool)",
+      "Bash(curl -s -X POST http://localhost:18060/mcp -H 'Content-Type: application/json' -d '{\"\"\"\"jsonrpc\"\"\"\": \"\"\"\"2.0\"\"\"\", \"\"\"\"id\"\"\"\": 1, \"\"\"\"method\"\"\"\": \"\"\"\"tools/list\"\"\"\"}')",
+      "Bash(curl:*)",
+      "Bash(python3 -c \"import sys,json; print\\(json.dumps\\(json.load\\(sys.stdin\\), indent=2, ensure_ascii=False\\)\\)\")",
+      "Bash(curl -s -X POST http://localhost:18060/ -H 'Content-Type: application/json' -d '{\"\"\"\"jsonrpc\"\"\"\": \"\"\"\"2.0\"\"\"\", \"\"\"\"id\"\"\"\": 1, \"\"\"\"method\"\"\"\": \"\"\"\"tools/list\"\"\"\"}')"
+    ]
+  },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "xiaohongshu-mcp"
+  ]
+}
