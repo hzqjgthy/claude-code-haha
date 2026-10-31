@@ -1,0 +1,10 @@
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.pyright/
+.local/
+condaenv.*.requirements.txt
+__pycache__/
+*.pyc
+.DS_Store
+.env
